@@ -4,6 +4,7 @@
 #include <linux/init.h>
 #include <linux/kdev_t.h>
 #include <linux/kernel.h>
+#include <linux/ktime.h>
 #include <linux/module.h>
 #include <linux/mutex.h>
 
@@ -17,12 +18,33 @@ MODULE_VERSION("0.1");
 /* MAX_LENGTH is set to 92 because
  * ssize_t can't fit the number > 92
  */
-#define MAX_LENGTH 92
+#define MAX_LENGTH 100
 
 static dev_t fib_dev = 0;
 static struct cdev *fib_cdev;
 static struct class *fib_class;
 static DEFINE_MUTEX(fib_mutex);
+static ktime_t kt;
+
+static inline uint64_t fast_doubling_iter(uint64_t target)
+{
+    if (target <= 2)
+        return !!target;
+
+    // find first 1
+    uint8_t count = 63 - __builtin_clzll(target);
+    long fib_n0 = 1, fib_n1 = 1;
+
+    for (uint64_t i = count, fib_2n0, fib_2n1, mask; i-- > 0;) {
+        fib_2n0 = fib_n0 * ((fib_n1 << 1) - fib_n0);
+        fib_2n1 = fib_n0 * fib_n0 + fib_n1 * fib_n1;
+
+        mask = -!!(target & (1UL << i));
+        fib_n0 = (fib_2n0 & ~mask) + (fib_2n1 & mask);
+        fib_n1 = (fib_2n0 & mask) + fib_2n1;
+    }
+    return fib_n0;
+}
 
 static long long fib_sequence(long long k)
 {
@@ -54,13 +76,22 @@ static int fib_release(struct inode *inode, struct file *file)
     return 0;
 }
 
+static long long fib_time_proxy(long long k)
+{
+    kt = ktime_get();
+    uint64_t result = fib_sequence(k);
+    kt = ktime_sub(ktime_get(), kt);
+
+    return result;
+}
+
 /* calculate the fibonacci number at given offset */
 static ssize_t fib_read(struct file *file,
                         char *buf,
                         size_t size,
                         loff_t *offset)
 {
-    return (ssize_t) fib_sequence(*offset);
+    return (ssize_t) fib_time_proxy(*offset);
 }
 
 /* write operation is skipped */
@@ -69,7 +100,7 @@ static ssize_t fib_write(struct file *file,
                          size_t size,
                          loff_t *offset)
 {
-    return 1;
+    return ktime_to_ns(kt);
 }
 
 static loff_t fib_device_lseek(struct file *file, loff_t offset, int orig)
