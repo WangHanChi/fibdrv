@@ -7,6 +7,8 @@
 #include <linux/ktime.h>
 #include <linux/module.h>
 #include <linux/mutex.h>
+#include <linux/slab.h>
+#include "bignum.h"
 
 MODULE_LICENSE("Dual MIT/GPL");
 MODULE_AUTHOR("National Cheng Kung University, Taiwan");
@@ -18,7 +20,7 @@ MODULE_VERSION("0.1");
 /* MAX_LENGTH is set to 92 because
  * ssize_t can't fit the number > 92
  */
-#define MAX_LENGTH 100
+#define MAX_LENGTH 500
 
 static dev_t fib_dev = 0;
 static struct cdev *fib_cdev;
@@ -26,39 +28,71 @@ static struct class *fib_class;
 static DEFINE_MUTEX(fib_mutex);
 static ktime_t kt;
 
-static inline uint64_t fast_doubling_iter(uint64_t target)
+// static inline uint64_t fast_doubling_iter(uint64_t target)
+// {
+//     if (target <= 2)
+//         return !!target;
+
+//     // find first 1
+//     uint8_t count = 63 - __builtin_clzll(target);
+//     long fib_n0 = 1, fib_n1 = 1;
+
+//     for (uint64_t i = count, fib_2n0, fib_2n1, mask; i-- > 0;) {
+//         fib_2n0 = fib_n0 * ((fib_n1 << 1) - fib_n0);
+//         fib_2n1 = fib_n0 * fib_n0 + fib_n1 * fib_n1;
+
+//         mask = -!!(target & (1UL << i));
+//         fib_n0 = (fib_2n0 & ~mask) + (fib_2n1 & mask);
+//         fib_n1 = (fib_2n0 & mask) + fib_2n1;
+//     }
+//     return fib_n0;
+// }
+
+static void fib_sequence(long long k, bn *output)
 {
-    if (target <= 2)
-        return !!target;
+    /* allocate memory */
 
-    // find first 1
-    uint8_t count = 63 - __builtin_clzll(target);
-    long fib_n0 = 1, fib_n1 = 1;
+    bn f0, f1, f;
 
-    for (uint64_t i = count, fib_2n0, fib_2n1, mask; i-- > 0;) {
-        fib_2n0 = fib_n0 * ((fib_n1 << 1) - fib_n0);
-        fib_2n1 = fib_n0 * fib_n0 + fib_n1 * fib_n1;
+    /* initialize */
+    f0.lower = 0;
+    f1.lower = 1;
+    f0.upper = f1.upper = 0;
+    switch (k) {
+    case 0:
+        output->lower = 0;
+        output->upper = 0;
+        break;
+    case 1:
+        output->lower = 1;
+        output->upper = 0;
+        break;
+    default:
+        for (int i = 2; i <= k; i++) {
+            f.upper = f0.upper + f1.upper;
+            if (f1.lower > ~f0.lower)
+                f.upper++;
+            f.lower = f0.lower + f1.lower;
 
-        mask = -!!(target & (1UL << i));
-        fib_n0 = (fib_2n0 & ~mask) + (fib_2n1 & mask);
-        fib_n1 = (fib_2n0 & mask) + fib_2n1;
+            /* reset data */
+            f0 = f1;
+            f1 = f;
+        }
+        output->lower = f.lower;
+        output->upper = f.upper;
+        break;
     }
-    return fib_n0;
-}
+    // /* FIXME: C99 variable-length array (VLA) is not allowed in Linux kernel.
+    // */ long long f[k + 2];
 
-static long long fib_sequence(long long k)
-{
-    /* FIXME: C99 variable-length array (VLA) is not allowed in Linux kernel. */
-    long long f[k + 2];
+    // f[0] = 0;
+    // f[1] = 1;
 
-    f[0] = 0;
-    f[1] = 1;
+    // for (int i = 2; i <= k; i++) {
+    //     f[i] = f[i - 1] + f[i - 2];
+    // }
 
-    for (int i = 2; i <= k; i++) {
-        f[i] = f[i - 1] + f[i - 2];
-    }
-
-    return f[k];
+    // return f[k];
 }
 
 static int fib_open(struct inode *inode, struct file *file)
@@ -76,22 +110,28 @@ static int fib_release(struct inode *inode, struct file *file)
     return 0;
 }
 
-static long long fib_time_proxy(long long k)
-{
-    kt = ktime_get();
-    uint64_t result = fib_sequence(k);
-    kt = ktime_sub(ktime_get(), kt);
-
-    return result;
-}
-
 /* calculate the fibonacci number at given offset */
 static ssize_t fib_read(struct file *file,
                         char *buf,
                         size_t size,
                         loff_t *offset)
 {
-    return (ssize_t) fib_time_proxy(*offset);
+    bn *output = kmalloc(sizeof(bn), GFP_KERNEL);
+
+    /* get time */
+    kt = ktime_get();
+    fib_sequence(*offset, output);
+    kt = ktime_sub(ktime_get(), kt);
+
+    /* copy_to_user */
+    int i = copy_to_user(buf, output, sizeof(bn));
+    /* free */
+    kfree(output);
+    /* check free  */
+    if (!i) {
+        printk(KERN_ALERT "copy_to_use is not used");
+    }
+    return (ssize_t) 1;
 }
 
 /* write operation is skipped */
