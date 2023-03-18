@@ -8,7 +8,7 @@
 #include <linux/module.h>
 #include <linux/mutex.h>
 #include <linux/slab.h>
-#include "bignum.h"
+#include "../inc/bignum.h"
 
 MODULE_LICENSE("Dual MIT/GPL");
 MODULE_AUTHOR("National Cheng Kung University, Taiwan");
@@ -48,51 +48,44 @@ static ktime_t kt;
 //     return fib_n0;
 // }
 
-static void fib_sequence(long long k, bn *output)
+void bn_fib(bn *dest, unsigned int n)
 {
-    /* allocate memory */
-
-    bn f0, f1, f;
-
-    /* initialize */
-    f0.lower = 0;
-    f1.lower = 1;
-    f0.upper = f1.upper = 0;
-    switch (k) {
-    case 0:
-        output->lower = 0;
-        output->upper = 0;
-        break;
-    case 1:
-        output->lower = 1;
-        output->upper = 0;
-        break;
-    default:
-        for (int i = 2; i <= k; i++) {
-            f.upper = f0.upper + f1.upper;
-            if (f1.lower > ~f0.lower)
-                f.upper++;
-            f.lower = f0.lower + f1.lower;
-
-            /* reset data */
-            f0 = f1;
-            f1 = f;
-        }
-        output->lower = f.lower;
-        output->upper = f.upper;
-        break;
+    bn_resize(dest, 1);
+    if (n < 2) {  // Fib(0) = 0, Fib(1) = 1
+        dest->number[0] = n;
+        return;
     }
-    // /* FIXME: C99 variable-length array (VLA) is not allowed in Linux kernel.
-    // */ long long f[k + 2];
 
-    // f[0] = 0;
-    // f[1] = 1;
+    bn *f1 = dest;        /* F(k) */
+    bn *f2 = bn_alloc(1); /* F(k+1) */
+    f1->number[0] = 0;
+    f2->number[0] = 1;
+    bn *k1 = bn_alloc(1);
+    bn *k2 = bn_alloc(1);
 
-    // for (int i = 2; i <= k; i++) {
-    //     f[i] = f[i - 1] + f[i - 2];
-    // }
-
-    // return f[k];
+    for (unsigned int i = 1U << 31; i; i >>= 1) {
+        /* F(2k) = F(k) * [ 2 * F(k+1) – F(k) ] */
+        bn_cpy(k1, f2);
+        bn_lshift(k1, 1);
+        bn_sub(k1, f1, k1);
+        bn_mult(k1, f1, k1);
+        /* F(2k+1) = F(k)^2 + F(k+1)^2 */
+        bn_mult(f1, f1, f1);
+        bn_mult(f2, f2, f2);
+        bn_cpy(k2, f1);
+        bn_add(k2, f2, k2);
+        if (n & i) {
+            bn_cpy(f1, k2);
+            bn_cpy(f2, k1);
+            bn_add(f2, k2, f2);
+        } else {
+            bn_cpy(f1, k1);
+            bn_cpy(f2, k2);
+        }
+    }
+    bn_free(f2);
+    bn_free(k1);
+    bn_free(k2);
 }
 
 static int fib_open(struct inode *inode, struct file *file)
@@ -116,17 +109,17 @@ static ssize_t fib_read(struct file *file,
                         size_t size,
                         loff_t *offset)
 {
-    bn *output = kmalloc(sizeof(bn), GFP_KERNEL);
-
+    bn *fib = bn_alloc(1);
     /* get time */
     kt = ktime_get();
-    fib_sequence(*offset, output);
+    bn_fib(fib, *offset);
     kt = ktime_sub(ktime_get(), kt);
-
+    char *p = bn_to_string(*fib);
     /* copy_to_user */
-    int i = copy_to_user(buf, output, sizeof(bn));
+    int i = copy_to_user(buf, p, strlen(p) + 1);
     /* free */
-    kfree(output);
+    bn_free(fib);
+    kfree(p);
     /* check free  */
     if (!i) {
         printk(KERN_ALERT "copy_to_use is not used");
