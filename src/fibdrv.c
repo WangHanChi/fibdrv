@@ -48,7 +48,28 @@ static ktime_t kt;
 //     return fib_n0;
 // }
 
-void bn_fib(bn *dest, unsigned int n)
+// void bn_fib(bn *dest, unsigned int n)
+// {
+//     bn_resize(dest, 1);
+//     if (n < 2) {  // Fib(0) = 0, Fib(1) = 1
+//         dest->number[0] = n;
+//         return;
+//     }
+
+//     bn *a = bn_alloc(1);
+//     bn *b = bn_alloc(1);
+//     dest->number[0] = 1;
+
+//     for (unsigned int i = 1; i < n; i++) {
+//         bn_swap(b, dest);
+//         bn_add(a, b, dest);
+//         bn_swap(a, b);
+//     }
+//     bn_free(a);
+//     bn_free(b);
+// }
+
+void bn_fib_fdoubling(bn *dest, unsigned int n)
 {
     bn_resize(dest, 1);
     if (n < 2) {  // Fib(0) = 0, Fib(1) = 1
@@ -112,7 +133,7 @@ static ssize_t fib_read(struct file *file,
     bn *fib = bn_alloc(1);
     /* get time */
     kt = ktime_get();
-    bn_fib(fib, *offset);
+    bn_fib_fdoubling(fib, *offset);
     kt = ktime_sub(ktime_get(), kt);
     char *p = bn_to_string(*fib);
     /* copy_to_user */

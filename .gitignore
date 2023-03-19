@@ -29,6 +29,7 @@ dkms.conf
 # test-oriented
 client
 out
+plotsrc
 
 # edit setting
 .vscode

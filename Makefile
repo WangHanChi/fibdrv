@@ -11,8 +11,9 @@ KDIR := /lib/modules/$(shell uname -r)/build
 PWD := $(shell pwd)
 
 GIT_HOOKS := .git/hooks/applied
+FILE ?= "data.txt"
 
-all: $(GIT_HOOKS) client
+all: $(GIT_HOOKS) client plotsrc
 	$(MAKE) -C $(KDIR) M=$(PWD) modules 
 
 $(GIT_HOOKS):
@@ -21,13 +22,16 @@ $(GIT_HOOKS):
 
 clean:
 	$(MAKE) -C $(KDIR) M=$(PWD) clean
-	$(RM) client out
+	$(RM) client out plotsrc
 load:
 	sudo insmod $(TARGET_MODULE).ko
 unload:
 	sudo rmmod $(TARGET_MODULE) || true >/dev/null
 
 client: src/client.c
+	$(CC) -o $@ $^
+
+plotsrc: src/plot.c
 	$(CC) -o $@ $^
 
 PRINTF = env printf
@@ -38,7 +42,15 @@ pass = $(PRINTF) "$(PASS_COLOR)$1 Passed [-]$(NO_COLOR)\n"
 plot: all
 	$(MAKE) unload
 	$(MAKE) load
-	@python3 scripts/driver.py
+	@python3 scripts/driver.py $(FILE)
+	$(MAKE) unload
+
+
+
+cmpplot: all
+	$(MAKE) unload
+	$(MAKE) load
+	@python3 scripts/cmp_driver.py $(FILE)
 	$(MAKE) unload
 
 check: all

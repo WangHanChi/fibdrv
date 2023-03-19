@@ -9,9 +9,15 @@
 
 #define FIB_DEV "/dev/fibonacci"
 
-int main()
+int main(int argc, char *argv[])
 {
+    FILE *f;
+    char *file_name = argv[1];
+    char *file_format = ".txt";
+    strncat(file_name, file_format, 4);
+    f = fopen(argv[1], "a+");
     char buf[300];
+    char write_buf[] = "testing writing";
     int offset = 500; /* TODO: try test something bigger than the limit */
 
     int fd = open(FIB_DEV, O_RDWR);
@@ -21,21 +27,22 @@ int main()
     }
 
     for (int i = 0; i <= offset; i++) {
+        uint64_t time;
         lseek(fd, i, SEEK_SET);
         read(fd, buf, sizeof(buf));
         printf("Reading from " FIB_DEV
                " at offset %d, returned the sequence "
                "%s.\n",
                i, buf);
+        time = (uint64_t) write(fd, write_buf, strlen(write_buf));
+        printf("Writing to " FIB_DEV ", returned the sequence %lu\n", time);
+        char text[40];
+        snprintf(text, 8, "%lu", time);
+        fprintf(f, "%s ", text);
     }
-    for (int i = offset; i >= 0; i--) {
-        lseek(fd, i, SEEK_SET);
-        read(fd, buf, sizeof(buf));
-        printf("Reading from " FIB_DEV
-               " at offset %d, returned the sequence "
-               "%s.\n",
-               i, buf);
-    }
+    fprintf(f, "\n");
+    fclose(f);
+
     close(fd);
     return 0;
 }
