@@ -132,6 +132,7 @@ static ssize_t fib_read(struct file *file,
 {
     bn *fib = bn_alloc(1);
     /* get time */
+    kt = 0;
     kt = ktime_get();
     bn_fib_fdoubling(fib, *offset);
     kt = ktime_sub(ktime_get(), kt);

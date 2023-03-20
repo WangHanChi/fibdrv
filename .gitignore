@@ -30,6 +30,8 @@ dkms.conf
 client
 out
 plotsrc
+record/*
+plot/*
 
 # edit setting
 .vscode

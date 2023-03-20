@@ -35,7 +35,7 @@ if __name__ == "__main__":
         print(var_name)
         data_name = argv[i]
         print(data_name)
-        exec(f"{var_name} = np.loadtxt('{data_name}.txt', dtype='float').T")
+        exec(f"{var_name} = np.loadtxt('record/{data_name}.txt', dtype='float').T")
     
     for i in range(1, cmp_num):
         var_name = 'output' + str(i)

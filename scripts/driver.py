@@ -4,7 +4,7 @@ import subprocess
 import numpy as np
 import matplotlib.pyplot as plt
 import sys
-runs = 10
+runs = 1000
 
 
 def data_processing(data_set, n):
