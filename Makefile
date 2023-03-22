@@ -4,7 +4,9 @@ TARGET_MODULE := fibdrv
 obj-m += $(TARGET_MODULE).o
 fibdrv-objs := \
 	src/fibdrv.o \
-	src/bignum.o
+	src/bignum.o \
+	src/algorithm.o
+	
 ccflags-y := -std=gnu99 -Wno-declaration-after-statement
 
 KDIR := /lib/modules/$(shell uname -r)/build
@@ -23,6 +25,8 @@ $(GIT_HOOKS):
 clean:
 	$(MAKE) -C $(KDIR) M=$(PWD) clean
 	$(RM) client out plotsrc
+	$(RM) plot/*
+	$(RM) record/*
 load:
 	sudo insmod $(TARGET_MODULE).ko
 unload:
@@ -33,6 +37,7 @@ client: src/client.c
 
 plotsrc: src/plot.c
 	$(CC) -o $@ $^
+
 
 PRINTF = env printf
 PASS_COLOR = \e[32;01m
@@ -50,13 +55,27 @@ plot: all
 cmpplot: all
 	$(MAKE) unload
 	$(MAKE) load
+	@python3 scripts/driver.py $(FILE)
 	@python3 scripts/cmp_driver.py $(FILE)
 	$(MAKE) unload
 
 check: all
 	$(MAKE) unload
 	$(MAKE) load
-	sudo ./client > out
+	sudo ./client 5 > out
 	$(MAKE) unload
 	@diff -u out scripts/expected.txt && $(call pass)
 	@scripts/verify.py
+
+help : 					## Show help message
+	@printf "\n====== fibdrv algorithm ID ======\n\n"
+	@printf "ID : 0	-> original_iter\n"
+	@printf "ID : 1	-> fdoubling_rec\n"
+	@printf "ID : 2	-> fdoubling_iter\n"
+	@printf "ID : 3	-> bn_fib\n"
+	@printf "ID : 4	-> bn_fib_fdoubling\n"
+	@printf "ID : 5	-> bn_fib_fdoubling_v1\n\n"
+	@printf "You can type ' make plot FILE=ID' and, \n"
+	@printf "get the algorithm performance fig.\n"
+	@printf "=================================\n"
+

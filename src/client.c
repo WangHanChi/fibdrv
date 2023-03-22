@@ -9,10 +9,11 @@
 
 #define FIB_DEV "/dev/fibonacci"
 
-int main()
+int main(int argc, char **argv)
 {
-    char buf[300];
     int offset = 500; /* TODO: try test something bigger than the limit */
+    char buf[300];
+
 
     int fd = open(FIB_DEV, O_RDWR);
     if (fd < 0) {
@@ -21,16 +22,18 @@ int main()
     }
 
     for (int i = 0; i <= offset; i++) {
+        *buf = *argv[1];
         lseek(fd, i, SEEK_SET);
-        read(fd, buf, sizeof(buf));
+        read(fd, buf, sizeof(char) * 300);
         printf("Reading from " FIB_DEV
                " at offset %d, returned the sequence "
                "%s.\n",
                i, buf);
     }
     for (int i = offset; i >= 0; i--) {
+        *buf = *argv[1];
         lseek(fd, i, SEEK_SET);
-        read(fd, buf, sizeof(buf));
+        read(fd, buf, sizeof(char) * 300);
         printf("Reading from " FIB_DEV
                " at offset %d, returned the sequence "
                "%s.\n",

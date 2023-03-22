@@ -81,7 +81,7 @@ void bn_sub(const bn *a, const bn *b, bn *c)
 }
 
 /* |c| = |a| + |b| */
-static void bn_do_add(const bn *a, const bn *b, bn *c)
+void bn_do_add(const bn *a, const bn *b, bn *c)
 {
     // max digits = max(sizeof(a) + sizeof(b)) + 1
     int d = MAX(bn_msb(a), bn_msb(b)) + 1;
@@ -105,7 +105,7 @@ static void bn_do_add(const bn *a, const bn *b, bn *c)
  * |c| = |a| - |b|
  * Note: |a| > |b| must be true
  */
-static void bn_do_sub(const bn *a, const bn *b, bn *c)
+void bn_do_sub(const bn *a, const bn *b, bn *c)
 {
     // max digits = max(sizeof(a) + sizeof(b))
     int d = MAX(a->size, b->size);
@@ -169,7 +169,7 @@ void bn_mult(const bn *a, const bn *b, bn *c)
 }
 
 /* c += x, starting from offset */
-static void bn_mult_add(bn *c, int offset, unsigned long long int x)
+void bn_mult_add(bn *c, int offset, unsigned long long int x)
 {
     unsigned long long int carry = 0;
     for (int i = offset; i < c->size; i++) {
@@ -183,7 +183,7 @@ static void bn_mult_add(bn *c, int offset, unsigned long long int x)
 }
 
 /* left bit shift on bn (maximun shift 31) */
-void bn_lshift(bn *src, size_t shift)
+void bn_lshift2(bn *src, size_t shift)
 {
     size_t z = bn_clz(src);
     shift %= 32;  // only handle shift within 32 bits atm
@@ -198,6 +198,7 @@ void bn_lshift(bn *src, size_t shift)
             src->number[i] << shift | src->number[i - 1] >> (32 - shift);
     src->number[0] <<= shift;
 }
+
 
 void bn_swap(bn *a, bn *b)
 {
@@ -253,7 +254,7 @@ int bn_resize(bn *src, size_t size)
 }
 
 /* count leading zeros of src*/
-static int bn_clz(const bn *src)
+int bn_clz(const bn *src)
 {
     int cnt = 0;
     for (int i = src->size - 1; i >= 0; i--) {
@@ -269,7 +270,7 @@ static int bn_clz(const bn *src)
 }
 
 /* count the digits of most significant bit */
-static int bn_msb(const bn *src)
+int bn_msb(const bn *src)
 {
     return src->size * 32 - bn_clz(src);
 }
@@ -312,4 +313,25 @@ int bn_cpy(bn *dest, bn *src)
     dest->sign = src->sign;
     memcpy(dest->number, src->number, src->size * sizeof(int));
     return 0;
+}
+
+
+/* left bit shift on bn (maximun shift 31) */
+void bn_lshift3(const bn *src, size_t shift, bn *dest)
+{
+    size_t z = bn_clz(src);
+    shift %= 32;  // only handle shift within 32 bits atm
+    if (!shift)
+        return;
+
+    if (shift > z) {
+        bn_resize(dest, src->size + 1);
+    } else {
+        bn_resize(dest, src->size);
+    }
+    /* bit shift */
+    for (int i = src->size - 1; i > 0; i--)
+        dest->number[i] =
+            src->number[i] << shift | src->number[i - 1] >> (32 - shift);
+    dest->number[0] = src->number[0] << shift;
 }

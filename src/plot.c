@@ -12,13 +12,11 @@
 int main(int argc, char *argv[])
 {
     FILE *f;
-    char *file_name = argv[1];
-    char *file_format = ".txt";
-    strncat(file_name, file_format, 4);
+
     f = fopen(argv[1], "a+");
-    char buf[300];
     char write_buf[] = "testing writing";
     int offset = 500; /* TODO: try test something bigger than the limit */
+    uint64_t ret;
 
     int fd = open(FIB_DEV, O_RDWR);
     if (fd < 0) {
@@ -29,11 +27,22 @@ int main(int argc, char *argv[])
     for (int i = 0; i <= offset; i++) {
         uint64_t time;
         lseek(fd, i, SEEK_SET);
-        read(fd, buf, sizeof(buf));
-        printf("Reading from " FIB_DEV
-               " at offset %d, returned the sequence "
-               "%s.\n",
-               i, buf);
+        char buf[300];
+        *buf = *argv[1];
+        if (*buf == '0' || *buf == '1' || *buf == '2') {
+            ret = read(fd, buf, sizeof(char) * 300);
+            printf("Reading from " FIB_DEV
+                   " at offset %d, returned the sequence "
+                   "%lu.\n",
+                   i, ret);
+        } else {
+            read(fd, buf, sizeof(char) * 300);
+            printf("Reading from " FIB_DEV
+                   " at offset %d, returned the sequence "
+                   "%s.\n",
+                   i, buf);
+        }
+
         time = (uint64_t) write(fd, write_buf, strlen(write_buf));
         printf("Writing to " FIB_DEV ", returned the sequence %lu\n", time);
         char text[40];

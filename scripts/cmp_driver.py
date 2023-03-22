@@ -6,10 +6,19 @@ import matplotlib.pyplot as plt
 import sys
 
 runs = 10
-cmp_num = len(sys.argv) + 1
+
 temp_str = []
 argv = [sys.argv[0]]
 argv.extend(sys.argv[1].split("+"))
+cmp_num = len(argv)
+algorithm_name = ""
+print(sys.argv)
+print(len(sys.argv))
+print(argv)
+print(cmp_num)
+print("------------")
+algorithm = ['original_iter', 'fdoubling_rec', 'fdoubling_iter', 
+             'bn_fib', 'bn_fib_fdoubling', 'bn_fib_fdoubling_v1']
 
 def data_processing(data_set, n):
     list = []
@@ -35,7 +44,7 @@ if __name__ == "__main__":
         print(var_name)
         data_name = argv[i]
         print(data_name)
-        exec(f"{var_name} = np.loadtxt('record/{data_name}.txt', dtype='float').T")
+        exec(f"{var_name} = np.loadtxt('record/{data_name}', dtype='float').T")
     
     for i in range(1, cmp_num):
         var_name = 'output' + str(i)
@@ -58,6 +67,8 @@ if __name__ == "__main__":
 
     fig, ax = plt.subplots(1, 1, sharey = True)
 
+        
+
     ax.set_title('Fibonacci Performance Comparision', fontsize = 16)
     ax.set_xlabel(r'$n_{th}$ fibonacci', fontsize = 16)
     ax.set_ylabel('time (ns)', fontsize = 16)
@@ -66,9 +77,13 @@ if __name__ == "__main__":
 
     for i in range(1, cmp_num):
         list_name = 'Y' + str(i)
-        label_name = argv[i]
+        label_name = algorithm[int(argv[i])]
         exec(f"ax.plot(x, {list_name}, marker = '+', markersize = 7, label = '{label_name}')")
         # ax.plot(X, Y, marker = '+', markersize = 7, label = 'kernel')
+        algorithm_id = int(argv[i])
+        algorithm_name += algorithm[algorithm_id]
+
+
 
     ax.legend(loc = 'upper left')
 
@@ -79,7 +94,7 @@ if __name__ == "__main__":
             break
         file_name += (argv[i] + "_")
 
-    exec(f"plt.savefig('plot/{file_name}.png')")
+    exec(f"plt.savefig('plot/{algorithm_name}.png')")
     # plt.savefig('plot/plot.png') 
     plt.show()
     # comp_porc = subprocess.run('rm -rf data.txt', shell = True)
