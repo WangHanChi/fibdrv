@@ -13,7 +13,7 @@ KDIR := /lib/modules/$(shell uname -r)/build
 PWD := $(shell pwd)
 
 GIT_HOOKS := .git/hooks/applied
-FILE ?= "data.txt"
+FILE ?= 4
 
 all: $(GIT_HOOKS) client plotsrc
 	$(MAKE) -C $(KDIR) M=$(PWD) modules 
@@ -62,7 +62,7 @@ cmpplot: all
 check: all
 	$(MAKE) unload
 	$(MAKE) load
-	sudo ./client 5 > out
+	sudo ./client $(FILE) > out
 	$(MAKE) unload
 	@diff -u out scripts/expected.txt && $(call pass)
 	@scripts/verify.py
