@@ -137,12 +137,14 @@ void bn_fib_fdoubling_v1(bn *dest, unsigned int n)
         /* F(2k) = F(k) * [ 2 * F(k+1) – F(k) ] */
         /* F(2k+1) = F(k)^2 + F(k+1)^2 */
         bn_lshift3(f2, 1, k1);  // k1 = 2 * F(k+1)
-        bn_sub(k1, f1, k1);     // k1 = 2 * F(k+1) – F(k)
-        bn_mult(k1, f1, k2);    // k2 = k1 * f1 = F(2k)
-        bn_mult(f1, f1, k1);    // k1 = F(k)^2
-        bn_swap(f1, k2);        // f1 <-> k2, f1 = F(2k) now
-        bn_mult(f2, f2, k2);    // k2 = F(k+1)^2
-        bn_add(k1, k2, f2);     // f2 = f1^2 + f2^2 = F(2k+1) now
+        // bn_cpy(k1, f2);
+        // bn_lshift2(k1, 1);
+        bn_sub(k1, f1, k1);   // k1 = 2 * F(k+1) – F(k)
+        bn_mult(k1, f1, k2);  // k2 = k1 * f1 = F(2k)
+        bn_mult(f1, f1, k1);  // k1 = F(k)^2
+        bn_swap(f1, k2);      // f1 <-> k2, f1 = F(2k) now
+        bn_mult(f2, f2, k2);  // k2 = F(k+1)^2
+        bn_add(k1, k2, f2);   // f2 = f1^2 + f2^2 = F(2k+1) now
         if (n & i) {
             bn_swap(f1, f2);     // f1 = F(2k+1)
             bn_add(f1, f2, f2);  // f2 = F(2k+2)

@@ -126,7 +126,7 @@ static ssize_t fib_read(struct file *file,
         bn_fib_fdoubling_v1(fib, *offset);
         kt = ktime_sub(ktime_get(), kt);
         s = bn_to_string(*fib);
-        pr_info("Using bn_fib_fdoubling_v1\n");
+        pr_info("Using bn_fib_fdoubling_v1 in %ld\n%d\n", *offset, fib->size);
         /* copy_to_user */
         i = copy_to_user(buf, s, strlen(s) + 1);
         if (!i) {

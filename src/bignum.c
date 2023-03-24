@@ -324,8 +324,15 @@ void bn_lshift3(const bn *src, size_t shift, bn *dest)
     if (!shift)
         return;
 
+    // if (shift > z) {
+    //     bn_resize(dest, src->size + 1);
+    // } else {
+    //     bn_resize(dest, src->size);
+    // }
+
     if (shift > z) {
         bn_resize(dest, src->size + 1);
+        dest->number[src->size] = src->number[src->size - 1] >> (32 - shift);
     } else {
         bn_resize(dest, src->size);
     }
