@@ -66,7 +66,7 @@ static ssize_t fib_read(struct file *file,
     switch (src) {
     case 0:
         if (*offset > 92)
-            return -1;
+            return 0;
         kt = 0;
         kt = ktime_get();
         ret = original_iter(*offset);
@@ -76,7 +76,7 @@ static ssize_t fib_read(struct file *file,
         break;
     case 1:
         if (*offset > 92)
-            return -1;
+            return 0;
         kt = 0;
         kt = ktime_get();
         ret = (ssize_t) fdoubling_rec(*offset);
@@ -86,7 +86,7 @@ static ssize_t fib_read(struct file *file,
         break;
     case 2:
         if (*offset > 92)
-            return -1;
+            return 0;
         kt = 0;
         kt = ktime_get();
         ret = (ssize_t) fdoubling_iter(*offset);

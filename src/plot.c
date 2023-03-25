@@ -41,9 +41,11 @@ int main(int argc, char *argv[])
                    " at offset %d, returned the sequence "
                    "%s.\n",
                    i, buf);
+            ret = 1;
         }
-
         time = (uint64_t) write(fd, write_buf, strlen(write_buf));
+        if (ret == 0)
+            time = 0;
         printf("Writing to " FIB_DEV ", returned the sequence %lu\n", time);
         char text[40];
         snprintf(text, 8, "%lu", time);
