@@ -7,6 +7,7 @@
 typedef struct _bn {
     unsigned int *number;
     unsigned int size;
+    unsigned int capacity; /* total allocated length, size <= capacity */
     int sign;
 } bn;
 
@@ -25,6 +26,9 @@ typedef struct _bn {
 #define DIV_ROUNDUP(x, len) (((x) + (len) -1) / (len))
 #endif
 
+
+#define INIT_ALLOC_SIZE 8
+#define ALLOC_CHUNK_SIZE 8
 
 /* function */
 

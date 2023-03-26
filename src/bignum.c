@@ -243,12 +243,23 @@ int bn_resize(bn *src, size_t size)
         return 0;
     if (size == 0)  // prevent krealloc(0) = kfree, which will cause problem
         return bn_free(src);
-    src->number = krealloc(src->number, sizeof(int) * size, GFP_KERNEL);
-    if (!src->number) {  // realloc fails
-        return -1;
+    // src->number = krealloc(src->number, sizeof(int) * size, GFP_KERNEL);
+    // if (!src->number) {  // realloc fails
+    //     return -1;
+    // }
+    // if (size > src->size)
+    //     memset(src->number + src->size, 0, sizeof(int) * (size - src->size));
+    // src->size = size;
+    if (size > src->capacity) { /* need to allocate larger capacity */
+        src->capacity = (size + (ALLOC_CHUNK_SIZE - 1)) &
+                        ~(ALLOC_CHUNK_SIZE - 1);  // ceil to 4*n
+        src->number =
+            krealloc(src->number, sizeof(int) * src->capacity, GFP_KERNEL);
     }
-    if (size > src->size)
-        memset(src->number + src->size, 0, sizeof(int) * (size - src->size));
+    if (size > src->size) { /* memset(src, 0, size) */
+        for (int i = src->size; i < size; i++)
+            src->number[i] = 0;
+    }
     src->size = size;
     return 0;
 }
@@ -281,10 +292,19 @@ int bn_msb(const bn *src)
  */
 bn *bn_alloc(size_t size)
 {
+    // bn *new = (bn *) kmalloc(sizeof(bn), GFP_KERNEL);
+    // new->number = kmalloc(sizeof(int) * size, GFP_KERNEL);
+    // memset(new->number, 0, sizeof(int) * size);
+    // new->size = size;
+    // new->sign = 0;
+    // return new;
     bn *new = (bn *) kmalloc(sizeof(bn), GFP_KERNEL);
-    new->number = kmalloc(sizeof(int) * size, GFP_KERNEL);
-    memset(new->number, 0, sizeof(int) * size);
     new->size = size;
+    new->capacity = size > INIT_ALLOC_SIZE ? size : INIT_ALLOC_SIZE;
+    new->number =
+        (unsigned int *) kmalloc(sizeof(int) * new->capacity, GFP_KERNEL);
+    for (int i = 0; i < size; i++)
+        new->number[i] = 0;
     new->sign = 0;
     return new;
 }
