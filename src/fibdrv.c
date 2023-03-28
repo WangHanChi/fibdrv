@@ -103,7 +103,7 @@ static ssize_t fib_read(struct file *file,
         pr_info("Using bn_fib\n");
         /* copy_to_user */
         i = copy_to_user(buf, s, strlen(s) + 1);
-        if (!i) {
+        if (i) {
             printk(KERN_ALERT "copy_to_use is not used");
         }
         break;
@@ -116,7 +116,7 @@ static ssize_t fib_read(struct file *file,
         pr_info("Using bn_fib_fdoubling\n");
         /* copy_to_user */
         i = copy_to_user(buf, s, strlen(s) + 1);
-        if (!i) {
+        if (i) {
             printk(KERN_ALERT "copy_to_use is not used");
         }
         break;
@@ -129,7 +129,7 @@ static ssize_t fib_read(struct file *file,
         pr_info("Using bn_fib_fdoubling_v1 in %ld\n%d\n", *offset, fib->size);
         /* copy_to_user */
         i = copy_to_user(buf, s, strlen(s) + 1);
-        if (!i) {
+        if (i) {
             printk(KERN_ALERT "copy_to_use is not used");
         }
         break;
